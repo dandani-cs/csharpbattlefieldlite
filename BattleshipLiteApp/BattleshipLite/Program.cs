@@ -14,10 +14,103 @@ namespace BattleshipLite
         {
             WelcomeMessage();
 
-            PlayerInfoModel player1 = CreatePlayer("Player1");
-            PlayerInfoModel player2 = CreatePlayer("Player2");
+            PlayerInfoModel activePlayer = CreatePlayer("Player 1");
+            PlayerInfoModel opponent = CreatePlayer("Player 2");
+            PlayerInfoModel winner = null;
+
+            do
+            {
+                // Display grid from activePlayer on where they fire
+                DisplayShotGrid(activePlayer);
+
+                // Ask activePlayer for a shot
+                RecordPlayerShot(activePlayer, opponent);
+                // determine if valid shot
+                // determine shot results
+
+                // determine if game over - if opponent has no more ships
+                bool doesGameContinue = GameLogic.PlayerStillActive(opponent);
+
+                if (doesGameContinue)
+                {
+                    // Swap positions
+                    (activePlayer, opponent) = (opponent, activePlayer);
+                } else
+                {
+                    winner = activePlayer;
+                }
+
+            } while (winner == null);
+
+            IdentifyWinner(winner);
 
             Console.ReadLine();
+        }
+
+        private static void IdentifyWinner(PlayerInfoModel winner)
+        {
+            Console.WriteLine($"Congratulations to { winner.UsersName } for winning!");
+            Console.WriteLine($"{ winner.UsersName } took { GameLogic.GetShotCount(winner) } shots.");
+        }
+
+        private static void RecordPlayerShot(PlayerInfoModel activePlayer, PlayerInfoModel opponent)
+        {
+            bool isValidShot = false;
+            string row = "";
+            int column = 0;
+
+            do
+            {
+                string shot = AskForShot();
+                (row, column) = GameLogic.SplitShotIntoRowAndColumn(shot);
+                isValidShot = GameLogic.ValidateShot(activePlayer, row, column);
+
+                if (!isValidShot)
+                {
+                    Console.WriteLine("Invalid shot location, please try again.");
+                }
+            } while (!isValidShot);
+
+            // Determine shot results
+            bool isAHit = GameLogic.IdentifyShotResult(opponent, row, column);
+
+            // record results
+            GameLogic.MarkShotResult(activePlayer, row, column, isAHit);
+        }
+
+        private static string AskForShot()
+        {
+            Console.Write("Please enter your shot selection: ");
+            string output = Console.ReadLine();
+
+            return output;
+        }
+
+        private static void DisplayShotGrid(PlayerInfoModel activePlayer)
+        {
+            string currentRow = activePlayer.ShotGrid[0].SpotLetter; // to add newline at the end
+
+            foreach (var gridSpot in activePlayer.ShotGrid)
+            {
+                if (gridSpot.SpotLetter != currentRow)
+                {
+                    Console.WriteLine();
+                    currentRow = gridSpot.SpotLetter;
+                }
+                if (gridSpot.Status == GridSpotStatus.Empty) 
+                {
+                    Console.Write($" {gridSpot.SpotLetter}{gridSpot.SpotNumber}");
+                } else if (gridSpot.Status == GridSpotStatus.Hit)
+                {
+                    Console.Write(" X ");
+                } else if (gridSpot.Status == GridSpotStatus.Miss)
+                {
+                    Console.Write(" O ");
+                } else
+                {
+                    Console.Write(" ? ");
+                }
+            }
         }
 
         private static void WelcomeMessage()
@@ -31,7 +124,7 @@ namespace BattleshipLite
         {
             PlayerInfoModel output = new PlayerInfoModel();
 
-            Console.WriteLine($"Player information for { playerTitle }");
+            Console.WriteLine($"Player information for { playerTitle }.");
 
             // Ask the name
             output.UsersName = AskForUsersName();
